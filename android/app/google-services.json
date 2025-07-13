@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "404485323568",
+    "firebase_url": "https://smart-plant-app-1-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "smart-plant-app-1",
+    "storage_bucket": "smart-plant-app-1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:404485323568:android:2b29f554c4b7d5d701e6f5",
+        "android_client_info": {
+          "package_name": "com.matter.plant.smart_plant_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDTWwpwvNwUa6hEmN4nKVDwdpAWDKOWVpc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

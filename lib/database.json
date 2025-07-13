@@ -1,0 +1,50 @@
+{
+  "plant_data": {
+    "temperature": 24.5,
+    "humidity": 62.0,
+    "soilMoisture": 55.8,
+    "lightIntensity": 780.0,
+    "ledStatus": false,
+    "ledBrightness": 0,
+    "pumpStatus": false,
+    "lastUpdated": "2025-07-10T21:00:00Z"
+  },
+  "automationRules": {
+    "-Mexample_rule_1": {
+      "id": "-Mexample_rule_1",
+      "name": "너무 건조하면 물 주기",
+      "sensorType": "soilMoisture",
+      "threshold": 25.0,
+      "condition": "below",
+      "action": "pump_on",
+      "actionValue": 150,
+      "isActive": true
+    },
+    "-Mexample_rule_2": {
+      "id": "-Mexample_rule_2",
+      "name": "어두워지면 조명 켜기",
+      "sensorType": "lightIntensity",
+      "threshold": 300.0,
+      "condition": "below",
+      "action": "led_on",
+      "actionValue": true,
+      "isActive": true
+    }
+  },
+  "wateringHistory": {
+    "-Nexample_history_1": {
+      "timestamp": "2025-07-09T10:00:00Z",
+      "amount": 100,
+      "isAutomatic": false
+    },
+    "-Nexample_history_2": {
+      "timestamp": "2025-07-10T11:30:00Z",
+      "amount": 150,
+      "isAutomatic": true
+    }
+  },
+  "settings": {
+    "autoMode": false,
+    "plantName": "My Smart Plant"
+  }
+}
