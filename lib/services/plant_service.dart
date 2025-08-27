@@ -25,6 +25,23 @@ class PlantService extends ChangeNotifier {
     _initializeService();
   }
 
+  Future<void> updatePlantName(String newName) async {
+    if (newName.isEmpty) return;
+
+    _plantName = newName;
+
+    // 1. SharedPreferences에 저장하여 앱 재시작 시 유지
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('plantName', newName);
+
+    // 2. Firebase Realtime Database에 저장하여 서버와 동기화
+    await _database.child('settings').update({'plantName': newName});
+
+    // 3. 변경사항을 앱의 모든 화면에 알림
+    notifyListeners();
+  }
+
+
   Future<void> _initializeService() async {
     await _loadPreferences();
     _setupDatabaseListeners();

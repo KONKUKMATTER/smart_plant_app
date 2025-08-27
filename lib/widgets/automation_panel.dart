@@ -1,33 +1,132 @@
-// widgets/automation_panel.dart
+// lib/widgets/automation_panel.dart
+
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:provider/provider.dart'; // 👈 여기가 올바른 경로입니다.
+import 'dart:async';
 import '../services/plant_service.dart';
 import '../models/automation_rule.dart';
 import 'automation_rule_dialog.dart';
 
+// (이하 나머지 코드는 이전 답변과 동일하게 유지)
 class AutomationPanel extends StatefulWidget {
   @override
   _AutomationPanelState createState() => _AutomationPanelState();
 }
 
 class _AutomationPanelState extends State<AutomationPanel> {
+  bool _isLoadingAiRules = false;
+  List<AutomationRule>? _aiRecommendedRules;
+
+  void _fetchAiRecommendedRules(String plantName) {
+    setState(() {
+      _isLoadingAiRules = true;
+      _aiRecommendedRules = null;
+    });
+
+    Future.delayed(Duration(seconds: 2), () {
+      if (!mounted) return;
+
+      final recommendedRules = [
+        AutomationRule(
+          id: 'ai_soil_moisture_rule',
+          name: 'AI 추천: 토양 건조 시 물 주기',
+          sensorType: 'soilMoisture',
+          threshold: 30.0,
+          condition: 'below',
+          action: 'pump_on',
+          actionValue: 120,
+          isActive: true,
+        ),
+        AutomationRule(
+          id: 'ai_temperature_rule',
+          name: 'AI 추천: 서늘할 때 조명 켜기',
+          sensorType: 'temperature',
+          threshold: 20.0,
+          condition: 'below',
+          action: 'led_on',
+          actionValue: true,
+          isActive: true,
+        ),
+        AutomationRule(
+          id: 'ai_light_rule',
+          name: 'AI 추천: 어두울 때 조명 켜기',
+          sensorType: 'lightIntensity',
+          threshold: 400.0,
+          condition: 'below',
+          action: 'led_brightness',
+          actionValue: 80,
+          isActive: true,
+        ),
+      ];
+
+      setState(() {
+        _isLoadingAiRules = false;
+        _aiRecommendedRules = recommendedRules;
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<PlantService>(
       builder: (context, plantService, child) {
         return Column(
           children: [
-            // 자동화 규칙 추가 버튼
+            Card(
+              elevation: 2,
+              color: Colors.blue.shade50,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.auto_awesome, color: Colors.blueAccent),
+                        SizedBox(width: 8),
+                        Text("AI 자동화 추천", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    SizedBox(height: 12),
+                    Text(
+                      "현재 설정된 '${plantService.plantName}'에 맞춰\nAI가 최적의 자동화 규칙을 제안해 드려요.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 13, color: Colors.black87),
+                    ),
+                    SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _isLoadingAiRules ? null : () => _fetchAiRecommendedRules(plantService.plantName),
+                        icon: Icon(Icons.recommend),
+                        label: Text('AI 추천 받기'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blueAccent,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                    if (_isLoadingAiRules)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 16.0),
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                    if (_aiRecommendedRules != null)
+                      _buildAiRecommendations(),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () => _showAddRuleDialog(context),
                 icon: Icon(Icons.add),
-                label: Text('조건 추가'),
+                label: Text('수동으로 조건 추가'),
               ),
             ),
             SizedBox(height: 16),
-            // 자동화 규칙 목록
             if (plantService.automationRules.isEmpty)
               Card(
                 child: Padding(
@@ -44,6 +143,39 @@ class _AutomationPanelState extends State<AutomationPanel> {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildAiRecommendations() {
+    return Container(
+      padding: const EdgeInsets.only(top: 16.0),
+      width: double.infinity,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("AI 추천 규칙:", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
+          SizedBox(height: 8),
+          Wrap(
+            spacing: 8.0,
+            runSpacing: 4.0,
+            children: _aiRecommendedRules!.map((rule) {
+              return ActionChip(
+                avatar: Icon(Icons.add, size: 16, color: Colors.white),
+                label: Text(_buildRuleDescription(rule), style: TextStyle(color: Colors.white)),
+                onPressed: () {
+                  final newRule = rule.copyWith(id: DateTime.now().millisecondsSinceEpoch.toString());
+                  context.read<PlantService>().addAutomationRule(newRule);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("'${rule.name}' 규칙이 추가되었습니다.")),
+                  );
+                },
+                backgroundColor: Colors.blueAccent.withOpacity(0.8),
+                shape: StadiumBorder(),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
     );
   }
 
@@ -71,16 +203,7 @@ class _AutomationPanelState extends State<AutomationPanel> {
           ],
         ),
         onTap: () {
-          final updatedRule = AutomationRule(
-            id: rule.id,
-            name: rule.name,
-            sensorType: rule.sensorType,
-            threshold: rule.threshold,
-            condition: rule.condition,
-            action: rule.action,
-            actionValue: rule.actionValue,
-            isActive: !rule.isActive,
-          );
+          final updatedRule = rule.copyWith(isActive: !rule.isActive);
           context.read<PlantService>().updateAutomationRule(updatedRule);
         },
       ),

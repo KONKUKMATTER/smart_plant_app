@@ -1,16 +1,19 @@
 // main.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
+import 'package:smart_plant_app/services/ai_service.dart';
 import 'services/plant_service.dart';
 import 'screens/home_screen.dart';
-import 'firebase_options.dart'; // 👈 이 줄을 추가하세요.
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // initializeApp에 options를 추가합니다.
+  await dotenv.load(fileName: ".env"); // .env 파일 로드
+
   await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform, // 👈 이 부분을 추가하세요.
+    options: DefaultFirebaseOptions.currentPlatform, //
   );
   runApp(MyApp());
 }
@@ -20,6 +23,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        Provider(create: (_) => AiService()), //
         ChangeNotifierProvider(create: (_) => PlantService()),
       ],
       child: MaterialApp(

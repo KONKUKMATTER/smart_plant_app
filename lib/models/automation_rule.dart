@@ -1,4 +1,5 @@
-// models/automation_rule.dart
+// lib/models/automation_rule.dart
+
 class AutomationRule {
   final String id;
   final String name;
@@ -44,5 +45,28 @@ class AutomationRule {
       'actionValue': actionValue,
       'isActive': isActive,
     };
+  }
+
+  // 👇 이 메서드를 추가하는 것이 중요합니다!
+  AutomationRule copyWith({
+    String? id,
+    String? name,
+    String? sensorType,
+    double? threshold,
+    String? condition,
+    String? action,
+    dynamic actionValue,
+    bool? isActive,
+  }) {
+    return AutomationRule(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      sensorType: sensorType ?? this.sensorType,
+      threshold: threshold ?? this.threshold,
+      condition: condition ?? this.condition,
+      action: action ?? this.action,
+      actionValue: actionValue ?? this.actionValue,
+      isActive: isActive ?? this.isActive,
+    );
   }
 }
