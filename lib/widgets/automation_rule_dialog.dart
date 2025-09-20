@@ -23,7 +23,7 @@ class _AutomationRuleDialogState extends State<AutomationRuleDialog> {
   dynamic _actionValue;
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
-  bool _useTimeSettings = false; // 👈 시간 설정 활성화 여부를 위한 상태 변수
+  bool _useTimeSettings = false;
 
   @override
   void initState() {
@@ -35,7 +35,6 @@ class _AutomationRuleDialogState extends State<AutomationRuleDialog> {
     _action = widget.rule?.action ?? 'led_on';
     _actionValue = widget.rule?.actionValue;
 
-    // 기존 규칙에 시간 정보가 있으면, 시간 설정 체크박스를 활성화 상태로 시작
     if (widget.rule?.startTime != null && widget.rule?.endTime != null) {
       _useTimeSettings = true;
       _startTime = TimeOfDay(hour: widget.rule!.startTime! ~/ 100, minute: widget.rule!.startTime! % 100);
@@ -54,7 +53,6 @@ class _AutomationRuleDialogState extends State<AutomationRuleDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ... (이름, 센서, 조건, 기준값, 실행 등 다른 입력 필드는 기존과 동일)
               TextFormField(
                 initialValue: _name,
                 decoration: InputDecoration(labelText: '규칙 이름'),
@@ -97,19 +95,18 @@ class _AutomationRuleDialogState extends State<AutomationRuleDialog> {
                   DropdownMenuItem(value: 'pump_on', child: Text('물 주기')),
                   DropdownMenuItem(value: 'led_brightness', child: Text('LED 밝기 조절')),
                   DropdownMenuItem(value: 'heat_led_on', child: Text('온열등 켜기')),
+                  DropdownMenuItem(value: 'heat_led_off', child: Text('온열등 끄기')), // 👈 **'온열등 끄기' 옵션 추가**
                 ],
                 onChanged: (value) => setState(() => _action = value!),
               ),
               if (_action == 'pump_on' || _action == 'led_brightness')
                 TextFormField(
                   initialValue: _actionValue?.toString() ?? '',
-                  decoration: InputDecoration(labelText: _action == 'pump_on' ? '급수량 (ml)' : '밝기'),
+                  decoration: InputDecoration(labelText: _action == 'pump_on' ? '급수량 (ml)' : '밝기 (%)'),
                   keyboardType: TextInputType.number,
                   onSaved: (value) => _actionValue = int.tryParse(value ?? ''),
                 ),
               SizedBox(height: 16),
-
-              // 👇 시간 설정 체크박스 UI
               Row(
                 children: [
                   Checkbox(
@@ -117,7 +114,6 @@ class _AutomationRuleDialogState extends State<AutomationRuleDialog> {
                     onChanged: (value) {
                       setState(() {
                         _useTimeSettings = value ?? false;
-                        // 체크를 해제하면, 저장된 시간 정보를 초기화
                         if (!_useTimeSettings) {
                           _startTime = null;
                           _endTime = null;
@@ -139,8 +135,6 @@ class _AutomationRuleDialogState extends State<AutomationRuleDialog> {
                   ),
                 ],
               ),
-
-              // 👇 체크박스가 선택된 경우에만 시간 설정 UI 표시
               if (_useTimeSettings)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -195,7 +189,6 @@ class _AutomationRuleDialogState extends State<AutomationRuleDialog> {
       _formKey.currentState!.save();
       final plantService = context.read<PlantService>();
 
-      // 체크박스가 꺼져있으면 시간 정보를 null로 저장
       final int? startTime = _useTimeSettings ? (_startTime != null ? _startTime!.hour * 100 + _startTime!.minute : null) : null;
       final int? endTime = _useTimeSettings ? (_endTime != null ? _endTime!.hour * 100 + _endTime!.minute : null) : null;
 
