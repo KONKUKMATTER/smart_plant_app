@@ -1,13 +1,13 @@
-// widgets/automation_rule_dialog.dart
+// lib/widgets/automation_rule_dialog.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/plant_service.dart';
 import '../models/automation_rule.dart';
+import '../services/plant_service.dart';
 
 class AutomationRuleDialog extends StatefulWidget {
   final AutomationRule? rule;
 
-  const AutomationRuleDialog({Key? key, this.rule}) : super(key: key);
+  AutomationRuleDialog({this.rule});
 
   @override
   _AutomationRuleDialogState createState() => _AutomationRuleDialogState();
@@ -15,140 +15,168 @@ class AutomationRuleDialog extends StatefulWidget {
 
 class _AutomationRuleDialogState extends State<AutomationRuleDialog> {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController _nameController;
-  late TextEditingController _thresholdController;
-  late TextEditingController _actionValueController;
-
-  String _sensorType = 'temperature';
-  String _condition = 'above';
-  String _action = 'led_on';
+  late String _name;
+  late String _sensorType;
+  late double _threshold;
+  late String _condition;
+  late String _action;
+  dynamic _actionValue;
+  TimeOfDay? _startTime;
+  TimeOfDay? _endTime;
+  bool _useTimeSettings = false; // 👈 시간 설정 활성화 여부를 위한 상태 변수
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController();
-    _thresholdController = TextEditingController();
-    _actionValueController = TextEditingController();
+    _name = widget.rule?.name ?? '';
+    _sensorType = widget.rule?.sensorType ?? 'temperature';
+    _threshold = widget.rule?.threshold ?? 20.0;
+    _condition = widget.rule?.condition ?? 'below';
+    _action = widget.rule?.action ?? 'led_on';
+    _actionValue = widget.rule?.actionValue;
 
-    if (widget.rule != null) {
-      _nameController.text = widget.rule!.name;
-      _thresholdController.text = widget.rule!.threshold.toString();
-      _sensorType = widget.rule!.sensorType;
-      _condition = widget.rule!.condition;
-      _action = widget.rule!.action;
-      _actionValueController.text = widget.rule!.actionValue?.toString() ?? '';
+    // 기존 규칙에 시간 정보가 있으면, 시간 설정 체크박스를 활성화 상태로 시작
+    if (widget.rule?.startTime != null && widget.rule?.endTime != null) {
+      _useTimeSettings = true;
+      _startTime = TimeOfDay(hour: widget.rule!.startTime! ~/ 100, minute: widget.rule!.startTime! % 100);
+      _endTime = TimeOfDay(hour: widget.rule!.endTime! ~/ 100, minute: widget.rule!.endTime! % 100);
     }
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _thresholdController.dispose();
-    _actionValueController.dispose();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.rule == null ? '자동화 규칙 추가' : '자동화 규칙 수정'),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
+      title: Text(widget.rule == null ? '새 규칙 추가' : '규칙 수정'),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ... (이름, 센서, 조건, 기준값, 실행 등 다른 입력 필드는 기존과 동일)
               TextFormField(
-                controller: _nameController,
+                initialValue: _name,
                 decoration: InputDecoration(labelText: '규칙 이름'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '규칙 이름을 입력하세요';
-                  }
-                  return null;
-                },
+                validator: (value) => value!.isEmpty ? '이름을 입력하세요' : null,
+                onSaved: (value) => _name = value!,
               ),
-              SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: _sensorType,
-                decoration: InputDecoration(labelText: '센서 종류'),
+                decoration: InputDecoration(labelText: '센서'),
                 items: [
                   DropdownMenuItem(value: 'temperature', child: Text('온도')),
                   DropdownMenuItem(value: 'humidity', child: Text('습도')),
-                  DropdownMenuItem(value: 'soilMoisture', child: Text('토양수분')),
+                  DropdownMenuItem(value: 'soilMoisture', child: Text('토양 수분')),
                   DropdownMenuItem(value: 'lightIntensity', child: Text('조도')),
                 ],
-                onChanged: (value) {
-                  setState(() {
-                    _sensorType = value!;
-                  });
-                },
+                onChanged: (value) => setState(() => _sensorType = value!),
               ),
-              SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _thresholdController,
-                      decoration: InputDecoration(labelText: '기준값'),
-                      keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return '기준값을 입력하세요';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                  SizedBox(width: 16),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      value: _condition,
-                      decoration: InputDecoration(labelText: '조건'),
-                      items: [
-                        DropdownMenuItem(value: 'above', child: Text('이상')),
-                        DropdownMenuItem(value: 'below', child: Text('이하')),
-                      ],
-                      onChanged: (value) {
-                        setState(() {
-                          _condition = value!;
-                        });
-                      },
-                    ),
-                  ),
+              DropdownButtonFormField<String>(
+                value: _condition,
+                decoration: InputDecoration(labelText: '조건'),
+                items: [
+                  DropdownMenuItem(value: 'below', child: Text('이하일 때')),
+                  DropdownMenuItem(value: 'above', child: Text('이상일 때')),
                 ],
+                onChanged: (value) => setState(() => _condition = value!),
               ),
-              SizedBox(height: 16),
+              TextFormField(
+                initialValue: _threshold.toString(),
+                decoration: InputDecoration(labelText: '기준값'),
+                keyboardType: TextInputType.number,
+                validator: (value) => value!.isEmpty ? '기준값을 입력하세요' : null,
+                onSaved: (value) => _threshold = double.parse(value!),
+              ),
               DropdownButtonFormField<String>(
                 value: _action,
-                decoration: InputDecoration(labelText: '동작'),
+                decoration: InputDecoration(labelText: '실행'),
                 items: [
                   DropdownMenuItem(value: 'led_on', child: Text('LED 켜기')),
                   DropdownMenuItem(value: 'led_off', child: Text('LED 끄기')),
                   DropdownMenuItem(value: 'pump_on', child: Text('물 주기')),
                   DropdownMenuItem(value: 'led_brightness', child: Text('LED 밝기 조절')),
+                  DropdownMenuItem(value: 'heat_led_on', child: Text('온열등 켜기')),
                 ],
-                onChanged: (value) {
-                  setState(() {
-                    _action = value!;
-                  });
-                },
+                onChanged: (value) => setState(() => _action = value!),
               ),
               if (_action == 'pump_on' || _action == 'led_brightness')
-                Padding(
-                  padding: EdgeInsets.only(top: 16),
-                  child: TextFormField(
-                    controller: _actionValueController,
-                    decoration: InputDecoration(
-                      labelText: _action == 'pump_on' ? '물 양 (ml)' : '밝기 (%)',
-                    ),
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return '값을 입력하세요';
-                      }
-                      return null;
+                TextFormField(
+                  initialValue: _actionValue?.toString() ?? '',
+                  decoration: InputDecoration(labelText: _action == 'pump_on' ? '급수량 (ml)' : '밝기'),
+                  keyboardType: TextInputType.number,
+                  onSaved: (value) => _actionValue = int.tryParse(value ?? ''),
+                ),
+              SizedBox(height: 16),
+
+              // 👇 시간 설정 체크박스 UI
+              Row(
+                children: [
+                  Checkbox(
+                    value: _useTimeSettings,
+                    onChanged: (value) {
+                      setState(() {
+                        _useTimeSettings = value ?? false;
+                        // 체크를 해제하면, 저장된 시간 정보를 초기화
+                        if (!_useTimeSettings) {
+                          _startTime = null;
+                          _endTime = null;
+                        }
+                      });
                     },
+                  ),
+                  GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _useTimeSettings = !_useTimeSettings;
+                          if (!_useTimeSettings) {
+                            _startTime = null;
+                            _endTime = null;
+                          }
+                        });
+                      },
+                      child: Text("특정 시간에만 규칙 활성화")
+                  ),
+                ],
+              ),
+
+              // 👇 체크박스가 선택된 경우에만 시간 설정 UI 표시
+              if (_useTimeSettings)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text("시작: ${_startTime?.format(context) ?? '미설정'}"),
+                          ElevatedButton(
+                            onPressed: () async {
+                              final time = await showTimePicker(context: context, initialTime: _startTime ?? TimeOfDay(hour: 8, minute: 0));
+                              if (time != null) setState(() => _startTime = time);
+                            },
+                            child: Text("선택"),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text("종료: ${_endTime?.format(context) ?? '미설정'}"),
+                          ElevatedButton(
+                            onPressed: () async {
+                              final time = await showTimePicker(context: context, initialTime: _endTime ?? TimeOfDay(hour: 18, minute: 0));
+                              if (time != null) setState(() => _endTime = time);
+                            },
+                            child: Text("선택"),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
             ],
@@ -156,39 +184,39 @@ class _AutomationRuleDialogState extends State<AutomationRuleDialog> {
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text('취소'),
-        ),
-        TextButton(
-          onPressed: _saveRule,
-          child: Text('저장'),
-        ),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text('취소')),
+        TextButton(onPressed: _saveRule, child: Text('저장')),
       ],
     );
   }
 
   void _saveRule() {
     if (_formKey.currentState!.validate()) {
-      final rule = AutomationRule(
+      _formKey.currentState!.save();
+      final plantService = context.read<PlantService>();
+
+      // 체크박스가 꺼져있으면 시간 정보를 null로 저장
+      final int? startTime = _useTimeSettings ? (_startTime != null ? _startTime!.hour * 100 + _startTime!.minute : null) : null;
+      final int? endTime = _useTimeSettings ? (_endTime != null ? _endTime!.hour * 100 + _endTime!.minute : null) : null;
+
+      final newRule = AutomationRule(
         id: widget.rule?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
-        name: _nameController.text,
+        name: _name,
         sensorType: _sensorType,
-        threshold: double.parse(_thresholdController.text),
+        threshold: _threshold,
         condition: _condition,
         action: _action,
-        actionValue: _actionValueController.text.isNotEmpty
-            ? int.parse(_actionValueController.text)
-            : null,
+        actionValue: _actionValue,
         isActive: widget.rule?.isActive ?? true,
+        startTime: startTime,
+        endTime: endTime,
       );
 
       if (widget.rule == null) {
-        context.read<PlantService>().addAutomationRule(rule);
+        plantService.addAutomationRule(newRule);
       } else {
-        context.read<PlantService>().updateAutomationRule(rule);
+        plantService.updateAutomationRule(newRule);
       }
-
       Navigator.pop(context);
     }
   }

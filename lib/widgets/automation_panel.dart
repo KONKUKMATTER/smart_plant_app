@@ -1,13 +1,11 @@
 // lib/widgets/automation_panel.dart
-
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; // 👈 여기가 올바른 경로입니다.
+import 'package:provider/provider.dart';
 import 'dart:async';
 import '../services/plant_service.dart';
 import '../models/automation_rule.dart';
 import 'automation_rule_dialog.dart';
 
-// (이하 나머지 코드는 이전 답변과 동일하게 유지)
 class AutomationPanel extends StatefulWidget {
   @override
   _AutomationPanelState createState() => _AutomationPanelState();
@@ -26,6 +24,7 @@ class _AutomationPanelState extends State<AutomationPanel> {
     Future.delayed(Duration(seconds: 2), () {
       if (!mounted) return;
 
+      // This is a simulation. In a real scenario, you would call an AI service.
       final recommendedRules = [
         AutomationRule(
           id: 'ai_soil_moisture_rule',
@@ -39,12 +38,11 @@ class _AutomationPanelState extends State<AutomationPanel> {
         ),
         AutomationRule(
           id: 'ai_temperature_rule',
-          name: 'AI 추천: 서늘할 때 조명 켜기',
+          name: 'AI 추천: 서늘할 때 온열등 켜기',
           sensorType: 'temperature',
           threshold: 20.0,
           condition: 'below',
-          action: 'led_on',
-          actionValue: true,
+          action: 'heat_led_on', // Updated action
           isActive: true,
         ),
         AutomationRule(
@@ -53,8 +51,7 @@ class _AutomationPanelState extends State<AutomationPanel> {
           sensorType: 'lightIntensity',
           threshold: 400.0,
           condition: 'below',
-          action: 'led_brightness',
-          actionValue: 80,
+          action: 'led_on',
           isActive: true,
         ),
       ];
@@ -210,12 +207,25 @@ class _AutomationPanelState extends State<AutomationPanel> {
     );
   }
 
+  // 시간 포맷을 H:mm 형태로 변환하는 헬퍼 함수
+  String _formatTime(int timeValue) {
+    final hour = (timeValue ~/ 100).toString().padLeft(2, '0');
+    final minute = (timeValue % 100).toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
   String _buildRuleDescription(AutomationRule rule) {
     String sensorName = _getSensorName(rule.sensorType);
     String conditionText = rule.condition == 'above' ? '이상' : '이하';
     String actionText = _getActionText(rule.action, rule.actionValue);
+    String timeText = '';
 
-    return '$sensorName ${rule.threshold}${_getUnit(rule.sensorType)} $conditionText일 때 $actionText';
+    // 시작과 종료 시간이 모두 설정되었을 때만 시간 텍스트 추가
+    if (rule.startTime != null && rule.endTime != null) {
+      timeText = ' (${_formatTime(rule.startTime!)}~${_formatTime(rule.endTime!)})';
+    }
+
+    return '$sensorName ${rule.threshold}${_getUnit(rule.sensorType)} $conditionText일 때 $actionText$timeText';
   }
 
   String _getSensorName(String sensorType) {
@@ -244,6 +254,7 @@ class _AutomationPanelState extends State<AutomationPanel> {
       case 'led_off': return 'LED 끄기';
       case 'pump_on': return '물 주기 (${actionValue}ml)';
       case 'led_brightness': return 'LED 밝기 ${actionValue}%';
+      case 'heat_led_on': return '온열등 켜기'; // 👈 온열등 액션 추가
       default: return action;
     }
   }

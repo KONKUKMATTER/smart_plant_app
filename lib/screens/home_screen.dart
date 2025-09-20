@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'dart:async'; // Future.delayed를 위해 추가
+import 'dart:async';
 import '../services/ai_service.dart';
 import '../services/plant_service.dart';
 import '../widgets/sensor_card.dart';
@@ -11,8 +11,6 @@ import '../widgets/control_panel.dart';
 import '../widgets/automation_panel.dart';
 import '../widgets/watering_history_panel.dart';
 
-// HomeScreen과 다른 탭들은 이전과 동일하게 유지됩니다.
-// ... (이전 코드와 동일한 부분은 생략) ...
 class HomeScreen extends StatefulWidget {
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -160,10 +158,13 @@ class SensorInfoTab extends StatefulWidget {
   _SensorInfoTabState createState() => _SensorInfoTabState();
 }
 
-class _SensorInfoTabState extends State<SensorInfoTab> {
+class _SensorInfoTabState extends State<SensorInfoTab> with AutomaticKeepAliveClientMixin {
   late TextEditingController _plantNameController;
   bool _isLoadingAiInfo = false;
   String? _aiPlantInfo;
+
+  @override
+  bool get wantKeepAlive => true; // 탭 상태를 계속 유지하도록 설정
 
   @override
   void initState() {
@@ -179,7 +180,7 @@ class _SensorInfoTabState extends State<SensorInfoTab> {
     super.dispose();
   }
 
-  // AI 정보 가져오기 함수를 실제 API를 호출하도록 수정
+  // AI 정보 가져오기 함수
   void _fetchAiPlantInfo(String plantName) async {
     setState(() {
       _isLoadingAiInfo = true;
@@ -187,7 +188,6 @@ class _SensorInfoTabState extends State<SensorInfoTab> {
     });
 
     try {
-      // Provider를 통해 AiService 인스턴스를 가져와 API 호출
       final aiService = Provider.of<AiService>(context, listen: false);
       final result = await aiService.getPlantInfo(plantName);
 
@@ -210,6 +210,8 @@ class _SensorInfoTabState extends State<SensorInfoTab> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // AutomaticKeepAliveClientMixin 사용을 위해 필수
+
     final plantService = Provider.of<PlantService>(context);
     final data = plantService.currentData;
 
@@ -259,8 +261,7 @@ class _SensorInfoTabState extends State<SensorInfoTab> {
                         final newName = _plantNameController.text;
                         if (newName.isNotEmpty) {
                           plantService.updatePlantName(newName);
-
-                          _fetchAiPlantInfo(newName); // 실제 AI 정보 조회 함수 호출
+                          _fetchAiPlantInfo(newName);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('"${newName}"에 대한 AI 정보를 조회합니다.')),
                           );
@@ -274,7 +275,7 @@ class _SensorInfoTabState extends State<SensorInfoTab> {
             ),
           ),
 
-          // 👇 AI 식물 정보 카드 추가
+          // AI 식물 정보 카드
           if (_isLoadingAiInfo || _aiPlantInfo != null)
             Card(
               elevation: 2,
@@ -303,25 +304,21 @@ class _SensorInfoTabState extends State<SensorInfoTab> {
                         ),
                       )
                     else if (_aiPlantInfo != null)
-                    // 👇 이 부분을 MarkdownBody 위젯으로 변경
                       MarkdownBody(
                         data: _aiPlantInfo!,
-                        selectable: true, // 텍스트 선택 가능하게
-                        // Markdown 스타일을 좀 더 예쁘게 커스터마이징할 수 있습니다.
+                        selectable: true,
                         styleSheet: MarkdownStyleSheet(
                           h1: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green.shade700),
                           h2: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.green.shade600),
                           p: TextStyle(fontSize: 14, height: 1.5, color: Colors.grey.shade800),
                           strong: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
                           listBullet: TextStyle(fontSize: 14, height: 1.5, color: Colors.grey.shade800),
-                          // 필요에 따라 다른 요소들도 스타일 지정 가능
                         ),
                       ),
                   ],
                 ),
               ),
             ),
-
 
           // --- 기존 센서 카드 ---
           SensorCard(
@@ -344,25 +341,32 @@ class _SensorInfoTabState extends State<SensorInfoTab> {
           ),
           SensorCard(
             title: '조도',
-            value: '${data.lightIntensity.toStringAsFixed(0)} lux',
+            value: '${data.lightIntensity.toStringAsFixed(0)} 단계',
             icon: Icons.light_mode,
             color: Colors.orange,
           ),
           SensorCard(
             title: 'LED 상태',
-            value: data.ledStatus ?? false ? 'ON (${data.ledBrightness}%)' : 'OFF',
+            value: data.ledStatus ? 'ON' : 'OFF',
             icon: Icons.lightbulb,
-            color: data.ledStatus ?? false ? Colors.green : Colors.grey,
+            color: data.ledStatus ? Colors.green : Colors.grey,
+          ),
+          // 👇 온열등 센서 카드 추가
+          SensorCard(
+            title: '온열등 상태',
+            value: data.heatLedStatus ? '작동중' : '정지',
+            icon: Icons.local_fire_department,
+            color: data.heatLedStatus ? Colors.orangeAccent : Colors.grey,
           ),
           SensorCard(
             title: '펌프 상태',
-            value: data.pumpStatus ?? false ? '작동중' : '정지',
+            value: data.pumpStatus ? '작동중' : '정지',
             icon: Icons.water_drop_rounded,
-            color: data.pumpStatus ?? false ? Colors.green : Colors.grey,
+            color: data.pumpStatus ? Colors.green : Colors.grey,
           ),
           SizedBox(height: 16),
           Text(
-            '최종 업데이트: ${DateFormat('HH:mm:ss').format(data.lastUpdated!)}',
+            '최종 업데이트: ${DateFormat('HH:mm:ss').format(data.lastUpdated)}',
             style: TextStyle(fontSize: 12, color: Colors.grey[600]),
           ),
         ],
@@ -370,7 +374,6 @@ class _SensorInfoTabState extends State<SensorInfoTab> {
     );
   }
 }
-
 
 // 제어 탭 (변경 없음)
 class ControlTab extends StatelessWidget {
@@ -408,7 +411,7 @@ class ControlTab extends StatelessWidget {
 // 기록 탭 (변경 없음)
 class HistoryTab extends StatelessWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext outinext) {
     return WateringHistoryPanel();
   }
 }

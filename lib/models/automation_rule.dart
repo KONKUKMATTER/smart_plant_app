@@ -3,12 +3,14 @@
 class AutomationRule {
   final String id;
   final String name;
-  final String sensorType; // temperature, humidity, soilMoisture, lightIntensity
+  final String sensorType;
   final double threshold;
-  final String condition; // above, below
-  final String action; // led_on, led_off, pump_on, led_brightness
+  final String condition;
+  final String action;
   final dynamic actionValue;
   final bool isActive;
+  final int? startTime; // 👈 시작 시간 추가 (예: 1230 -> 12:30)
+  final int? endTime;   // 👈 종료 시간 추가 (예: 1830 -> 18:30)
 
   AutomationRule({
     required this.id,
@@ -19,6 +21,8 @@ class AutomationRule {
     required this.action,
     this.actionValue,
     required this.isActive,
+    this.startTime, // 👈 생성자에 추가
+    this.endTime,   // 👈 생성자에 추가
   });
 
   factory AutomationRule.fromJson(Map<String, dynamic> json) {
@@ -31,6 +35,8 @@ class AutomationRule {
       action: json['action'],
       actionValue: json['actionValue'],
       isActive: json['isActive'] ?? true,
+      startTime: json['startTime'], // 👈 fromJson에 추가
+      endTime: json['endTime'],     // 👈 fromJson에 추가
     );
   }
 
@@ -44,10 +50,11 @@ class AutomationRule {
       'action': action,
       'actionValue': actionValue,
       'isActive': isActive,
+      'startTime': startTime, // 👈 toJson에 추가
+      'endTime': endTime,     // 👈 toJson에 추가
     };
   }
 
-  // 👇 이 메서드를 추가하는 것이 중요합니다!
   AutomationRule copyWith({
     String? id,
     String? name,
@@ -57,6 +64,8 @@ class AutomationRule {
     String? action,
     dynamic actionValue,
     bool? isActive,
+    int? startTime,
+    int? endTime,
   }) {
     return AutomationRule(
       id: id ?? this.id,
@@ -67,6 +76,9 @@ class AutomationRule {
       action: action ?? this.action,
       actionValue: actionValue ?? this.actionValue,
       isActive: isActive ?? this.isActive,
+      // copyWith는 null로 값을 덮어쓸 수 있도록 수정
+      startTime: startTime,
+      endTime: endTime,
     );
   }
 }

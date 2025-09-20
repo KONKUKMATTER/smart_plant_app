@@ -1,4 +1,5 @@
-// models/plant_data.dart
+// lib/models/plant_data.dart
+
 class PlantData {
   final double temperature;
   final double humidity;
@@ -7,6 +8,7 @@ class PlantData {
   final bool ledStatus;
   final int ledBrightness;
   final bool pumpStatus;
+  final bool heatLedStatus; // 👈 온열등 상태 추가
   final DateTime lastUpdated;
 
   PlantData({
@@ -17,6 +19,7 @@ class PlantData {
     required this.ledStatus,
     required this.ledBrightness,
     required this.pumpStatus,
+    required this.heatLedStatus, // 👈 생성자에 추가
     required this.lastUpdated,
   });
 
@@ -29,7 +32,10 @@ class PlantData {
       ledStatus: json['ledStatus'] ?? false,
       ledBrightness: json['ledBrightness'] ?? 0,
       pumpStatus: json['pumpStatus'] ?? false,
-      lastUpdated: DateTime.parse(json['lastUpdated'] ?? DateTime.now().toIso8601String()),
+      heatLedStatus: json['heatLedStatus'] ?? false, // 👈 fromJson에 추가
+      lastUpdated: json['lastUpdated'] != null
+          ? DateTime.parse(json['lastUpdated'])
+          : DateTime.now(),
     );
   }
 
@@ -42,6 +48,7 @@ class PlantData {
       'ledStatus': ledStatus,
       'ledBrightness': ledBrightness,
       'pumpStatus': pumpStatus,
+      'heatLedStatus': heatLedStatus, // 👈 toJson에 추가
       'lastUpdated': lastUpdated.toIso8601String(),
     };
   }

@@ -1,7 +1,8 @@
-// widgets/watering_history_panel.dart
+// lib/widgets/watering_history_panel.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:fl_chart/fl_chart.dart'; // 그래프 패키지
 import '../services/plant_service.dart';
 import '../models/watering_history.dart';
 
@@ -18,6 +19,16 @@ class WateringHistoryPanel extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Text(
+                '오늘의 데이터 요약',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 16),
+              // 하루 동안의 급수량 + 펌프 작동 횟수 그래프
+              _buildWateringSummaryChart(todayHistory),
+              SizedBox(height: 24),
+
+              // --- 기존 UI ---
               // 오늘 급수 현황
               Card(
                 child: Padding(
@@ -78,10 +89,11 @@ class WateringHistoryPanel extends StatelessWidget {
                 Card(
                   child: Padding(
                     padding: EdgeInsets.all(16),
-                    child: Text(
-                      '급수 기록이 없습니다.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey[600]),
+                    child: Center(
+                      child: Text(
+                        '급수 기록이 없습니다.',
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
                     ),
                   ),
                 )
@@ -91,6 +103,67 @@ class WateringHistoryPanel extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  /// 하루 동안의 급수량 및 횟수 막대 그래프
+  Widget _buildWateringSummaryChart(List<WateringHistory> todayHistory) {
+    final double totalAmount = todayHistory.fold(0.0, (sum, h) => sum + h.amount);
+    final int totalCount = todayHistory.length;
+    final double maxValue = (totalAmount > totalCount ? totalAmount : totalCount.toDouble());
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('오늘의 급수', style: TextStyle(fontWeight: FontWeight.bold)),
+            SizedBox(height: 24),
+            SizedBox(
+              height: 120,
+              child: BarChart(
+                BarChartData(
+                  alignment: BarChartAlignment.spaceAround,
+                  maxY: maxValue == 0 ? 50 : maxValue * 1.2, // 데이터가 0일 때 maxY 기본값 설정
+                  barTouchData: BarTouchData(enabled: true),
+                  titlesData: FlTitlesData(
+                    show: true,
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (double value, TitleMeta meta) {
+                          const style = TextStyle(fontSize: 12);
+                          String text = '';
+                          switch (value.toInt()) {
+                            case 0: text = '총 급수량 (ml)'; break;
+                            case 1: text = '펌프 작동 (회)'; break;
+                          }
+                          return Padding(padding: const EdgeInsets.only(top: 8.0), child: Text(text, style: style));
+                        },
+                        reservedSize: 30,
+                      ),
+                    ),
+                    leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40)),
+                    topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  ),
+                  gridData: FlGridData(show: true, drawVerticalLine: false, horizontalInterval: maxValue > 100 ? 50 : 10),
+                  borderData: FlBorderData(show: false),
+                  barGroups: [
+                    BarChartGroupData(x: 0, barRods: [
+                      BarChartRodData(toY: totalAmount, color: Colors.blue, width: 25, borderRadius: BorderRadius.circular(4)),
+                    ]),
+                    BarChartGroupData(x: 1, barRods: [
+                      BarChartRodData(toY: totalCount.toDouble(), color: Colors.green, width: 25, borderRadius: BorderRadius.circular(4)),
+                    ]),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
